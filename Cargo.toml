@@ -1,0 +1,28 @@
+[package]
+name = "predict-resolve-tally"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Jana Lemke <dev@jana-lemke.de>"]
+description = "Record and score your predictions"
+
+
+[lib]
+name = "prt"
+path = "src/lib.rs"
+
+[[bin]]
+name = "prt"
+path = "src/main.rs"
+
+[profile.release]
+lto = "fat"
+
+[dependencies]
+anyhow = "1.0.62"
+chrono = { version = "0.4.22", features = ["serde"] }
+clap = { version = "3.2.17", features = ["derive"] }
+directories = "4.0.1"
+inquire = { version = "0.3.0", features = ["date"] }
+serde = { version = "1.0.143", features = ["derive"] }
+serde_json = "1.0.83"
