@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 authors = ["Jana Lemke <dev@jana-lemke.de>"]
 description = "Record and score your predictions"
+repository = "https://github.com/janalemke/predict-resolve-tally"
 
 
 [lib]
