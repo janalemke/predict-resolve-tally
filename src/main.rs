@@ -15,6 +15,7 @@ fn main() -> Result<()> {
         prt::cli::Command::Resolve => resolve(),
         prt::cli::Command::Tally => tally(),
         prt::cli::Command::Show => show(),
+        prt::cli::Command::Score => score(),
     }?;
 
     Ok(())
@@ -167,5 +168,20 @@ fn tally() -> Result<()> {
 
 fn show() -> Result<()> {
     println!("{}", Predictions::read()?);
+    Ok(())
+}
+
+fn score() -> Result<(), anyhow::Error> {
+    let predictions = Predictions::read()?;
+    let score: f64 = predictions
+        .resolved
+        .iter()
+        .map(|prediction| {
+            let real = if prediction.is_correct() { 1. } else { 0. };
+            (prediction.record.probability - real).powi(2)
+        })
+        .sum();
+    let score = score / predictions.resolved.len() as f64;
+    println! {"The Brier Score of your resolved predictions is {score:.2}"}
     Ok(())
 }

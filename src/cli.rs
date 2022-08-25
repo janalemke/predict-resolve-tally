@@ -6,10 +6,12 @@ pub enum Command {
     Predict,
     /// Resolve any due predictions
     Resolve,
-    /// Show your calibration
+    /// Show your accuracy for various probability bins
     Tally,
     /// List all predictions
     Show,
+    /// Calculate Brier Score (Calibration) of your predictions
+    Score,
 }
 
 #[derive(Parser, Debug)]
