@@ -103,29 +103,41 @@ fn resolve() -> Result<()> {
             render_config: inquire::ui::RenderConfig::default_colored(),
         }
     }
-    // ugly and potentially inefficient but until drain_filter becomes stable it will have to do
-    let mut i = 0;
-    while i < predictions.open.len() {
-        let prediction = &predictions.open[i];
-        if prediction.record.resolves_after <= now {
-            println!("{prediction}");
-            // we want to customize the behaviour related to skipping
-            // so we will manually handle InquireError::OperationCanceled
-            // (which is what prompt_skippable does)
-            let resolution = make_resolve_prompt().prompt();
-            match resolution {
-                Ok(Some(resolution)) => {
-                    let prediction = predictions.open.remove(i);
-                    predictions.resolved.push(prediction.resolve(resolution))
+
+    if predictions.open.is_empty() {
+        println!("You currently have no open predictions!");
+    } else if predictions
+        .open
+        .iter()
+        .all(|prediction| prediction.record.resolves_after > now)
+    {
+        println!("All your predictions are set to resolve at some later point in time!");
+    } else {
+        // ugly and potentially inefficient but until drain_filter becomes stable it will have to do
+
+        let mut i = 0;
+        while i < predictions.open.len() {
+            let prediction = &predictions.open[i];
+            if prediction.record.resolves_after <= now {
+                println!("{prediction}");
+                // we want to customize the behaviour related to skipping
+                // so we will manually handle InquireError::OperationCanceled
+                // (which is what prompt_skippable does)
+                let resolution = make_resolve_prompt().prompt();
+                match resolution {
+                    Ok(Some(resolution)) => {
+                        let prediction = predictions.open.remove(i);
+                        predictions.resolved.push(prediction.resolve(resolution))
+                    }
+                    Ok(None) => i += 1,
+                    Err(inquire::InquireError::OperationCanceled) => i += 1,
+                    e @ Err(_) => {
+                        e?;
+                    }
                 }
-                Ok(None) => i += 1,
-                Err(inquire::InquireError::OperationCanceled) => i += 1,
-                e @ Err(_) => {
-                    e?;
-                }
+            } else {
+                i += 1;
             }
-        } else {
-            i += 1;
         }
     }
     predictions.write()?;
