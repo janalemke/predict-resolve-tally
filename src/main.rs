@@ -78,18 +78,23 @@ fn resolve() -> Result<()> {
     let mut predictions = Predictions::read()?;
     let now = Local::now();
 
-    fn make_resolve_prompt() -> CustomType<'static, bool> {
+    fn make_resolve_prompt() -> CustomType<'static, Option<bool>> {
         CustomType {
             message: "How did this prediction resolve?",
             default: None,
             placeholder: Some("true/false"),
-            help_message: Some("Press ESC to skip resolving"),
-            formatter: &|val| format!("{val}"),
+            help_message: Some("Press ESC or enter skip to skip resolving"),
+            formatter: &|val| match val {
+                Some(t) => format!("{t}"),
+                None => "skipped".into(),
+            },
             parser: &|s| {
                 if ["true", "t", "yes", "y", "0"].contains(&s.to_lowercase().as_str()) {
-                    Ok(true)
+                    Ok(Some(true))
                 } else if ["false", "f", "no", "n", "1"].contains(&s.to_lowercase().as_str()) {
-                    Ok(false)
+                    Ok(Some(false))
+                } else if ["skip", "s"].contains(&s.to_lowercase().as_str()) {
+                    Ok(None)
                 } else {
                     Err(())
                 }
@@ -104,13 +109,20 @@ fn resolve() -> Result<()> {
         let prediction = &predictions.open[i];
         if prediction.record.resolves_after <= now {
             println!("{prediction}");
-            let resolution = make_resolve_prompt().prompt_skippable()?;
+            // we want to customize the behaviour related to skipping
+            // so we will manually handle InquireError::OperationCanceled
+            // (which is what prompt_skippable does)
+            let resolution = make_resolve_prompt().prompt();
             match resolution {
-                Some(resolution) => {
+                Ok(Some(resolution)) => {
                     let prediction = predictions.open.remove(i);
                     predictions.resolved.push(prediction.resolve(resolution))
                 }
-                None => i += 1,
+                Ok(None) => i += 1,
+                Err(inquire::InquireError::OperationCanceled) => i += 1,
+                e @ Err(_) => {
+                    e?;
+                }
             }
         } else {
             i += 1;
