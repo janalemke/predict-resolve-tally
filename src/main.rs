@@ -31,21 +31,25 @@ fn predict() -> Result<()> {
             }
         })
         .prompt()?;
-    let probability_prompt: CustomType<f64> = CustomType {
+    let probability_prompt: CustomType<u8> = CustomType {
         message: "Probability:",
         default: None,
-        placeholder: Some("0.5"),
-        help_message: "Enter as a decimal number between 0.0 and 1.0".into(),
-        formatter: &|i| format!("{:>3.1}%", i * 100.0),
-        parser: &|i| match i.parse::<f64>() {
-            Ok(val) => {
-                if (0.0..=1.0).contains(&val) {
-                    Ok(val)
-                } else {
-                    Err(())
+        placeholder: Some("50%"),
+        help_message: "Enter as a integer percentage; the % is optional".into(),
+        formatter: &|i| format!("{:>3.1}%", i),
+        parser: &|i| {
+            // optionally strip the % sign from the end
+            let i = i.strip_suffix('%').unwrap_or(i);
+            match i.parse::<u8>() {
+                Ok(val) => {
+                    if (0..=100).contains(&val) {
+                        Ok(val)
+                    } else {
+                        Err(())
+                    }
                 }
+                Err(_) => Err(()),
             }
-            Err(_) => Err(()),
         },
         error_message: "Please type a valid probabilty".into(),
         render_config: inquire::ui::RenderConfig::default_colored(),
@@ -56,7 +60,7 @@ fn predict() -> Result<()> {
     predictions.open.push(OpenPrediction {
         record: Record {
             statement,
-            probability,
+            probability: probability as f64 / 100.,
             resolves_after: chrono::DateTime::<Local>::from_local(
                 resolves_after.and_hms(0, 0, 0),
                 Local
